@@ -1,0 +1,80 @@
+//@version=4
+strategy("Breakout Strategy", overlay=true)
+
+// 自訂義函數
+int    L1_ema            = input(20, title="L1_ema",type=input.integer,minval = 10,maxval = 50,step = 5)
+int    L2_ema            = input(200, title="L2_ema",type=input.integer,minval = 150,maxval = 300,step = 20)
+int    K_LENGTH          = input(30, title="K_LENGTH",type=input.integer,minval = 5,maxval = 60,step = 5)
+int    ATR_LENGTH        = input(10, title="ATR_LENGTH",type=input.integer,minval = 7,maxval = 30,step = 3)
+float  ATR_MULTIPLIER    = input(1.0, title="ATR_MULTIPLIER",type=input.float,minval = 1,maxval = 2,step = 0.5)
+float  width_MULTIPLIER  = input(1.0, title="width_MULTIPLIER",type=input.float,minval = 1,maxval = 10,step = 0.5)
+startTime                = input(title="Start",type=input.time, defval=timestamp("01 Aug 2023 13:30 +0000"))
+endTime                  = input(title="End",type=input.time, defval=timestamp("01 Jul 2024 19:30 +0000"))
+
+// 確定時間範圍
+dateFilter = time >= startTime and time <= endTime
+
+// 計算EMA
+L1 = ema(close, 20)
+L2 = ema(close, 200)
+
+// 計算過去30天的最高價
+highestHigh  = highest(high, K_LENGTH)[1]
+lowestLow    = lowest(low, K_LENGTH)[1]
+
+// 計算ATR
+float atrValue = atr(ATR_LENGTH)
+
+// 計算止損價
+var float trailingStopLoss = na 
+float longStop   = highest(low, 2) - (atrValue * ATR_MULTIPLIER)
+float ShortStop  = lowest(high, 2) + (atrValue * ATR_MULTIPLIER)
+
+// 買進賣出訊號
+BuySignal  = L1 > L2 and highestHigh and dateFilter
+SellSignal = L1 < L2 and lowestLow and dateFilter
+
+// 策略進場並發出訊號
+if (BuySignal)
+    //strategy.entry("Long",  strategy.long, stop=highestHigh,alert_message = tostring(7528021098709)+',buy,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.entry("Long",  strategy.long, stop=highestHigh,alert_message = tostring(7528021098709)+',buy,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    alert(alert.freq_once_per_bar)
+
+if (SellSignal)
+    //strategy.entry("Sell",  strategy.short, stop=lowestLow,alert_message =tostring(7528021098709)+',sell,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.entry("Sell",  strategy.short, stop=lowestLow,alert_message =tostring(7528021098709)+',sell,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    alert(alert.freq_once_per_bar)
+
+// 假如 trailingStopLoss 沒數值或longStop大於trailingStopLoss，將longStop賦予trailingStopLoss，空單反之，沒單就返還na
+if (strategy.position_size > 0)
+    if(na(trailingStopLoss) or longStop > trailingStopLoss)
+        trailingStopLoss := longStop
+else if (strategy.position_size < 0)
+    if(na(trailingStopLoss) or ShortStop < trailingStopLoss)
+        trailingStopLoss := ShortStop
+else
+    trailingStopLoss := na
+
+// 平倉
+closelong = trailingStopLoss
+closeshort = trailingStopLoss
+
+// 設置策略的停損和止盈
+if (closelong and strategy.position_size > 0)
+    //strategy.exit("Exit", "Long" ,stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closelong,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.exit("Exit", "Long" ,stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closelong,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    alert(alert.freq_once_per_bar)
+ 
+if (closeshort and strategy.position_size < 0)
+    //strategy.exit("Exit", "Sell", stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closeshort,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.exit("Exit", "Sell", stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closeshort,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    alert(alert.freq_once_per_bar)
+
+// 繪製L1,L2
+plot(L1, title = "L1",color =  color.yellow)
+plot(L2, title = "L2",color =  color.white)
+plot(highestHigh, title = "HH",color =  color.red)
+plot(lowestLow, title = "LL",color =  color.red)
+
+// 繪製 trailingStopLoss
+plot(trailingStopLoss, title = "Stop Loss", color = color.red, linewidth = 1 , style = plot.style_linebr)
