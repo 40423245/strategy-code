@@ -4,12 +4,13 @@ strategy("Breakout Strategy", overlay=true)
 // 自訂義函數
 int    L1_ema            = input(20, title="L1_ema",type=input.integer,minval = 10,maxval = 50,step = 5)
 int    L2_ema            = input(200, title="L2_ema",type=input.integer,minval = 150,maxval = 300,step = 20)
-int    K_LENGTH          = input(30, title="K_LENGTH",type=input.integer,minval = 5,maxval = 60,step = 5)
-int    ATR_LENGTH        = input(10, title="ATR_LENGTH",type=input.integer,minval = 7,maxval = 30,step = 3)
-float  ATR_MULTIPLIER    = input(1.0, title="ATR_MULTIPLIER",type=input.float,minval = 1,maxval = 2,step = 0.5)
-float  width_MULTIPLIER  = input(1.0, title="width_MULTIPLIER",type=input.float,minval = 1,maxval = 10,step = 0.5)
+int    K_LENGTH          = input(37, title="K_LENGTH",type=input.integer,minval = 5,maxval = 60,step = 5)
+int    ATR_LENGTH        = input(28, title="ATR_LENGTH",type=input.integer,minval = 7,maxval = 30,step = 3)
+float  ATR_MULTIPLIER    = input(1.49, title="ATR_MULTIPLIER",type=input.float,minval = 1,maxval = 2,step = 0.5)
 startTime                = input(title="Start",type=input.time, defval=timestamp("01 Aug 2023 13:30 +0000"))
 endTime                  = input(title="End",type=input.time, defval=timestamp("01 Jul 2024 19:30 +0000"))
+License_ID               = input(title="License_ID",type=input.string, defval="ID")
+risKvalue                = input(0.01,title="risKvalue",type=input.float)
 
 // 確定時間範圍
 dateFilter = time >= startTime and time <= endTime
@@ -36,13 +37,11 @@ SellSignal = L1 < L2 and lowestLow and dateFilter
 
 // 策略進場並發出訊號
 if (BuySignal)
-    //strategy.entry("Long",  strategy.long, stop=highestHigh,alert_message = tostring(7528021098709)+',buy,' + syminfo.ticker + ',risk=' + tostring(0.04))
-    strategy.entry("Long",  strategy.long, stop=highestHigh,alert_message = tostring(7528021098709)+',buy,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.entry("Long",  strategy.long, stop=highestHigh,alert_message = tostring(License_ID)+',buy,' + syminfo.ticker + ',risk=' + tostring(risKvalue))
     alert(alert.freq_once_per_bar)
 
 if (SellSignal)
-    //strategy.entry("Sell",  strategy.short, stop=lowestLow,alert_message =tostring(7528021098709)+',sell,' + syminfo.ticker + ',risk=' + tostring(0.04))
-    strategy.entry("Sell",  strategy.short, stop=lowestLow,alert_message =tostring(7528021098709)+',sell,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.entry("Sell",  strategy.short, stop=lowestLow,alert_message =tostring(License_ID)+',sell,' + syminfo.ticker + ',risk=' + tostring(risKvalue))
     alert(alert.freq_once_per_bar)
 
 // 假如 trailingStopLoss 沒數值或longStop大於trailingStopLoss，將longStop賦予trailingStopLoss，空單反之，沒單就返還na
@@ -61,13 +60,11 @@ closeshort = trailingStopLoss
 
 // 設置策略的停損和止盈
 if (closelong and strategy.position_size > 0)
-    //strategy.exit("Exit", "Long" ,stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closelong,' + syminfo.ticker + ',risk=' + tostring(0.04))
-    strategy.exit("Exit", "Long" ,stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closelong,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.exit("Exit", "Long" ,stop=trailingStopLoss,alert_message =tostring(License_ID)+',closelong,' + syminfo.ticker + ',risk=' + tostring(risKvalue))
     alert(alert.freq_once_per_bar)
  
 if (closeshort and strategy.position_size < 0)
-    //strategy.exit("Exit", "Sell", stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closeshort,' + syminfo.ticker + ',risk=' + tostring(0.04))
-    strategy.exit("Exit", "Sell", stop=trailingStopLoss,alert_message =tostring(7528021098709)+',closeshort,' + syminfo.ticker + ',risk=' + tostring(0.04))
+    strategy.exit("Exit", "Sell", stop=trailingStopLoss,alert_message =tostring(License_ID)+',closeshort,' + syminfo.ticker + ',risk=' + tostring(risKvalue))
     alert(alert.freq_once_per_bar)
 
 // 繪製L1,L2
